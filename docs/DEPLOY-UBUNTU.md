@@ -101,9 +101,31 @@ Access at `http://server-ip:8080`
 
 ## Updating gt
 
+### From fork (origin)
+
 ```bash
 cd ~/projects/gastown
-git pull
+git checkout main
+git pull origin main
+make build
+sudo mv gt /usr/local/bin/
+```
+
+### Sync with upstream (steveyegge/gastown)
+
+```bash
+cd ~/projects/gastown
+
+# Add upstream if not exists
+git remote add upstream https://github.com/steveyegge/gastown.git 2>/dev/null || true
+
+# Sync
+git fetch upstream
+git checkout main
+git merge upstream/main --ff-only
+git push origin main
+
+# Rebuild
 make build
 sudo mv gt /usr/local/bin/
 ```

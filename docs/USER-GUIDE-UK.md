@@ -22,6 +22,7 @@
 13. [Розширені можливості](#розширені-можливості)
 14. [Усунення проблем](#усунення-проблем)
 15. [Глосарій](#глосарій)
+16. [Fork Workflow (для цього репозиторію)](#fork-workflow-для-цього-репозиторію)
 
 ---
 
@@ -1145,6 +1146,81 @@ gt audit --actor=myapp/polecats/alpha
 
 ---
 
+## Fork Workflow (для цього репозиторію)
+
+> **Важливо:** Цей розділ описує як ми працюємо з форком joyshmitz/gastown.
+
+### Архітектура remotes
+
+```
+upstream (steveyegge/gastown)     origin (joyshmitz/gastown)
+         │                                 │
+         main ──────────────────────────► main (sync only)
+         │                                 │
+         └─ (fetch only)                   ├─► feature/* (наша робота)
+                                           ├─► fix/*
+                                           └─► docs/*
+```
+
+### Правила роботи
+
+| Дія | Дозволено | Заборонено |
+|-----|-----------|------------|
+| Push в `origin/main` | ❌ | Тільки sync з upstream |
+| Push в feature branches | ✅ | — |
+| Merge в `origin/main` | ❌ | Ніколи |
+| PR в upstream | ✅ (якщо контриб'ютимо) | — |
+| Fetch з upstream | ✅ | — |
+
+### Типовий робочий процес
+
+```bash
+# 1. Синхронізувати main з upstream
+git fetch upstream
+git checkout main
+git merge upstream/main --ff-only
+git push origin main
+
+# 2. Створити feature branch
+git checkout -b feature/my-feature
+
+# 3. Працювати, комітити
+git add .
+git commit -m "feat: my feature"
+
+# 4. Push в origin (не в main!)
+git push -u origin feature/my-feature
+
+# 5. (Опціонально) PR в upstream якщо хочемо контриб'ютити
+```
+
+### Команди для синхронізації
+
+```bash
+# Перевірити remotes
+git remote -v
+
+# Додати upstream (якщо немає)
+git remote add upstream https://github.com/steveyegge/gastown.git
+
+# Sync main
+git fetch upstream && git checkout main && git merge upstream/main --ff-only && git push origin main
+
+# Повернутись на робочу гілку
+git checkout feature/my-feature
+
+# Rebase на свіжий main (якщо потрібно)
+git rebase main
+```
+
+### Примітка про Refinery
+
+Refinery агент та merge queue, описані в цій документації, стосуються внутрішньої роботи Gas Town як системи оркестрації. Вони працюють **всередині** rigs (проєктів, які ти додаєш в town), а не з самим репозиторієм gastown.
+
+Для форку gastown ми використовуємо стандартний fork workflow без внутрішнього merge queue.
+
+---
+
 ## Корисні посилання
 
 - [README](../README.md) — Основна документація
@@ -1157,4 +1233,4 @@ gt audit --actor=myapp/polecats/alpha
 
 **Автор:** @joyshmitz
 **Дата:** 2026-01-20
-**Версія документа:** 1.0.0
+**Версія документа:** 1.1.0
