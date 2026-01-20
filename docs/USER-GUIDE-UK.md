@@ -1194,7 +1194,33 @@ git push -u origin feature/my-feature
 # 5. (Опціонально) PR в upstream якщо хочемо контриб'ютити
 ```
 
-### Команди для синхронізації
+### Стандартна послідовність оновлення
+
+**Виконувати регулярно** щоб тримати гілки актуальними:
+
+```bash
+# 1. Sync main з upstream
+git fetch upstream
+git checkout main
+git merge upstream/main --ff-only
+git push origin main
+
+# 2. Rebase робочої гілки на свіжий main
+git checkout feature/my-feature
+git rebase main
+git push --force-with-lease
+
+# Повторити крок 2 для кожної робочої гілки
+```
+
+### Швидкий sync (copy-paste)
+
+```bash
+# Sync main + rebase поточної гілки
+git fetch upstream && git checkout main && git merge upstream/main --ff-only && git push origin main && git checkout - && git rebase main && git push --force-with-lease
+```
+
+### Початкове налаштування remotes
 
 ```bash
 # Перевірити remotes
@@ -1202,15 +1228,6 @@ git remote -v
 
 # Додати upstream (якщо немає)
 git remote add upstream https://github.com/steveyegge/gastown.git
-
-# Sync main
-git fetch upstream && git checkout main && git merge upstream/main --ff-only && git push origin main
-
-# Повернутись на робочу гілку
-git checkout feature/my-feature
-
-# Rebase на свіжий main (якщо потрібно)
-git rebase main
 ```
 
 ### Примітка про Refinery
@@ -1233,4 +1250,4 @@ Refinery агент та merge queue, описані в цій документ�
 
 **Автор:** @joyshmitz
 **Дата:** 2026-01-20
-**Версія документа:** 1.1.0
+**Версія документа:** 1.2.0
