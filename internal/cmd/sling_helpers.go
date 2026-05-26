@@ -290,12 +290,7 @@ func burnExistingMolecules(molecules []string, beadID, townRoot string) error {
 // StripBeadsDir prevents inherited BEADS_DIR from overriding the resolved
 // directory, which caused rig-prefixed beads to fail (GH#2126).
 func verifyBeadExists(beadID string) error {
-	out, err := BdCmd("show", beadID, "--json").
-		AllowStale().
-		Dir(resolveBeadDir(beadID)).
-		StripBeadsDir().
-		Stderr(io.Discard).
-		Output()
+	out, err := bdShowBeadOutput(beadID)
 	if err != nil {
 		return fmt.Errorf("bead '%s' not found (bd show failed)", beadID)
 	}
@@ -333,6 +328,9 @@ func verifyBeadExistsInTargetRigDatabase(beadID, targetRig, townRoot string) err
 		Stderr(io.Discard).
 		Output()
 	if err != nil || len(strings.TrimSpace(string(out))) == 0 {
+		if routedBeadExistsForTargetRig(beadID, targetRig, townRoot) {
+			return nil
+		}
 		return fmt.Errorf("bead %s is not present in target rig %q beads database; refusing to sling before creating hooks or molecule side effects", beadID, targetRig)
 	}
 
@@ -341,21 +339,55 @@ func verifyBeadExistsInTargetRigDatabase(beadID, targetRig, townRoot string) err
 		return fmt.Errorf("checking target rig %q database for bead %s: %w", targetRig, beadID, err)
 	}
 	if len(infos) == 0 {
+		if routedBeadExistsForTargetRig(beadID, targetRig, townRoot) {
+			return nil
+		}
 		return fmt.Errorf("bead %s is not present in target rig %q beads database; refusing to sling before creating hooks or molecule side effects", beadID, targetRig)
 	}
 
 	return nil
 }
 
+func routedBeadExistsForTargetRig(beadID, targetRig, townRoot string) bool {
+	prefixRig := beads.GetRigNameForPrefix(townRoot, beads.ExtractPrefix(beadID))
+	if prefixRig != targetRig {
+		return false
+	}
+	out, err := bdShowBeadRoutedCmd(beadID).Stderr(io.Discard).Output()
+	return err == nil && len(strings.TrimSpace(string(out))) > 0
+}
+
+func bdShowBeadOutput(beadID string) ([]byte, error) {
+	out, err := bdShowBeadDirectCmd(beadID).Stderr(io.Discard).Output()
+	if err == nil && len(strings.TrimSpace(string(out))) > 0 {
+		return out, nil
+	}
+	routedOut, routedErr := bdShowBeadRoutedCmd(beadID).Stderr(io.Discard).Output()
+	if routedErr == nil && len(strings.TrimSpace(string(routedOut))) > 0 {
+		return routedOut, nil
+	}
+	return out, err
+}
+
+func bdShowBeadDirectCmd(beadID string) *bdCmd {
+	return BdCmd("show", beadID, "--json").
+		AllowStale().
+		Dir(resolveBeadDir(beadID)).
+		StripBeadsDir()
+}
+
+func bdShowBeadRoutedCmd(beadID string) *bdCmd {
+	bdc := BdCmd("show", beadID, "--json").AllowStale()
+	if townRoot, err := workspace.FindFromCwdOrError(); err == nil && townRoot != "" {
+		return bdc.Dir(townRoot).WithRouting()
+	}
+	return bdc.Dir(resolveBeadDir(beadID)).StripBeadsDir()
+}
+
 // getBeadInfo returns status and assignee for a bead.
 // Resolves the rig directory from the bead's prefix for correct dolt access.
 func getBeadInfo(beadID string) (*beadInfo, error) {
-	out, err := BdCmd("show", beadID, "--json").
-		AllowStale().
-		Dir(resolveBeadDir(beadID)).
-		StripBeadsDir().
-		Stderr(io.Discard).
-		Output()
+	out, err := bdShowBeadOutput(beadID)
 	if err != nil {
 		return nil, fmt.Errorf("bead '%s' not found", beadID)
 	}
@@ -429,12 +461,7 @@ func storeFieldsInBead(beadID string, updates beadFieldUpdates) error {
 	issue := &beads.Issue{}
 	if logPath == "" {
 		// Read the bead once
-		out, err := BdCmd("show", beadID, "--json").
-			AllowStale().
-			Dir(resolveBeadDir(beadID)).
-			StripBeadsDir().
-			Stderr(io.Discard).
-			Output()
+		out, err := bdShowBeadOutput(beadID)
 		if err != nil {
 			return fmt.Errorf("fetching bead: %w", err)
 		}
