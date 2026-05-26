@@ -249,6 +249,7 @@ func stripEnvKey(env []string, key string) []string {
 func addGTDerivedDoltTargetEnv(env []string) []string {
 	gtHost := envValue(env, "GT_DOLT_HOST")
 	gtPort := envValue(env, "GT_DOLT_PORT")
+	gtData := envValue(env, "GT_DOLT_DATA")
 	if gtHost != "" && envValue(env, "BEADS_DOLT_SERVER_HOST") == "" {
 		env = append(env, "BEADS_DOLT_SERVER_HOST="+gtHost)
 	}
@@ -259,6 +260,9 @@ func addGTDerivedDoltTargetEnv(env []string) []string {
 		if envValue(env, "BEADS_DOLT_PORT") == "" {
 			env = append(env, "BEADS_DOLT_PORT="+gtPort)
 		}
+	}
+	if gtData != "" && envValue(env, "BEADS_DOLT_DATA_DIR") == "" {
+		env = append(env, "BEADS_DOLT_DATA_DIR="+gtData)
 	}
 	return env
 }

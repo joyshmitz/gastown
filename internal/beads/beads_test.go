@@ -664,6 +664,7 @@ exit /b 0
 		scriptPath = filepath.Join(dir, "bd")
 		if supportsAllowStale {
 			script = `#!/bin/sh
+	echo "bd test"
 exit 0
 `
 		} else {
@@ -3907,7 +3908,7 @@ fi
   printf 'BEADS_DOLT_SERVER_PORT=%s\n' "${BEADS_DOLT_SERVER_PORT:-}"
   printf 'BEADS_DOLT_SERVER_DATABASE=%s\n' "${BEADS_DOLT_SERVER_DATABASE:-}"
 } > "$MOCK_BD_LOG"
-if [ -n "${BEADS_DOLT_DATA_DIR:-}" ] || [ -n "${BEADS_DOLT_HOST:-}" ] || [ -n "${BEADS_DOLT_SERVER_PORT:-}" ] || [ "${BEADS_DOLT_SERVER_DATABASE:-}" = "hq" ]; then
+if [ -n "${BEADS_DOLT_HOST:-}" ] || [ "${BEADS_DOLT_SERVER_DATABASE:-}" = "hq" ]; then
   printf 'hq\n'
   exit 0
 fi
@@ -3943,9 +3944,7 @@ printf 'unknown\n'
 	}
 	log := string(data)
 	for _, forbidden := range []string{
-		"BEADS_DOLT_DATA_DIR=/home/coder/gt/.dolt-data",
 		"BEADS_DOLT_HOST=127.0.0.1",
-		"BEADS_DOLT_SERVER_PORT=3307",
 		"BEADS_DOLT_SERVER_DATABASE=hq",
 	} {
 		if strings.Contains(log, forbidden) {

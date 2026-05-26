@@ -363,11 +363,9 @@ exit /b 0
 		case strings.Contains(args, "create "):
 			gotCreate = true
 			assertTargetRig("create", dir, beadsDir, args)
-		case strings.Contains(args, "--db ") && strings.Contains(args, " show "+newBeadID):
+		case strings.Contains(args, "show "+newBeadID) && strings.Contains(args, "--json"):
 			gotTargetDBCheck = true
-			if !strings.Contains(args, "--db "+wantBeadsDir) {
-				t.Fatalf("target rig DB check args = %q, want --db %q", args, wantBeadsDir)
-			}
+			assertTargetRig("target DB check", dir, beadsDir, args)
 		case strings.Contains(args, "cook "):
 			switch {
 			case strings.Contains(args, "mol-polecat-work"):
