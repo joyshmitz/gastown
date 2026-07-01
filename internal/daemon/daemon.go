@@ -282,6 +282,7 @@ func New(config *Config) (*Daemon, error) {
 			logger.Printf("Set env %s=%s from daemon.json", k, v)
 		}
 	}
+	agentconfig.ApplyConfiguredDoltEnv(config.TownRoot)
 
 	// Load disabled_patrols from town settings (settings/config.json).
 	// This provides a simpler way to disable patrols than editing daemon.json.
@@ -318,7 +319,7 @@ func New(config *Config) (*Daemon, error) {
 	// started independently of gt up), detect the port from dolt config.
 	// This ensures AgentEnv() always has the port for spawned sessions. (GH#2412)
 	if os.Getenv("GT_DOLT_PORT") == "" {
-		if port := agentconfig.ResolveDoltPort(config.TownRoot); port > 0 {
+		if port := agentconfig.ResolveConfiguredDoltPort(config.TownRoot); port > 0 {
 			portStr := strconv.Itoa(port)
 			os.Setenv("GT_DOLT_PORT", portStr)
 			os.Setenv("BEADS_DOLT_SERVER_PORT", portStr)
@@ -335,7 +336,7 @@ func New(config *Config) (*Daemon, error) {
 	// when the server runs on a remote machine. BEADS_DOLT_SERVER_HOST is a
 	// derived alias, not an authority, so stale inherited values are replaced or
 	// removed here.
-	if host := agentconfig.ResolveDoltHost(config.TownRoot); host != "" {
+	if host := agentconfig.ResolveConfiguredDoltHost(config.TownRoot); host != "" {
 		os.Setenv("GT_DOLT_HOST", host)
 		os.Setenv("BEADS_DOLT_SERVER_HOST", host)
 		logger.Printf("Set BEADS_DOLT_SERVER_HOST=%s from resolved Dolt host", host)

@@ -180,7 +180,7 @@ func runUp(cmd *cobra.Command, args []string) error {
 			os.Setenv(k, v)
 		}
 	}
-	applyConfiguredDoltEnv(townRoot)
+	config.ApplyConfiguredDoltEnv(townRoot)
 
 	allOK := true
 	var services []ServiceStatus
@@ -448,26 +448,6 @@ func runUp(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
-}
-
-func applyConfiguredDoltEnv(townRoot string) {
-	normalized := config.NormalizeConfiguredDoltEnv(os.Environ(), townRoot)
-	keys := map[string]bool{
-		"GT_DOLT_HOST":           true,
-		"GT_DOLT_PORT":           true,
-		"BEADS_DOLT_SERVER_HOST": true,
-		"BEADS_DOLT_SERVER_PORT": true,
-		"BEADS_DOLT_PORT":        true,
-	}
-	for key := range keys {
-		_ = os.Unsetenv(key)
-	}
-	for _, entry := range normalized {
-		key, value, ok := strings.Cut(entry, "=")
-		if ok && keys[key] {
-			os.Setenv(key, value)
-		}
-	}
 }
 
 func printStatus(name string, ok bool, detail string) {

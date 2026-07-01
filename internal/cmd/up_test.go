@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/steveyegge/gastown/internal/config"
 	"github.com/steveyegge/gastown/internal/doltserver"
 	"github.com/steveyegge/gastown/internal/rig"
 )
@@ -58,7 +59,7 @@ func TestApplyConfiguredDoltEnvConfigBeatsStaleEnv(t *testing.T) {
 	t.Setenv("BEADS_DOLT_SERVER_PORT", "9999")
 	t.Setenv("BEADS_DOLT_PORT", "9999")
 
-	applyConfiguredDoltEnv(townRoot)
+	config.ApplyConfiguredDoltEnv(townRoot)
 
 	if got := os.Getenv("GT_DOLT_HOST"); got != "127.0.0.2" {
 		t.Fatalf("GT_DOLT_HOST = %q, want 127.0.0.2", got)
@@ -85,7 +86,7 @@ func TestApplyConfiguredDoltEnvClearsStaleHostWhenConfigHasNoHost(t *testing.T) 
 	t.Setenv("GT_DOLT_PORT", "9999")
 	t.Setenv("BEADS_DOLT_SERVER_HOST", "stale-host")
 
-	applyConfiguredDoltEnv(townRoot)
+	config.ApplyConfiguredDoltEnv(townRoot)
 
 	if got := os.Getenv("GT_DOLT_HOST"); got != "" {
 		t.Fatalf("GT_DOLT_HOST = %q, want cleared", got)

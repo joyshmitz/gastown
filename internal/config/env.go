@@ -511,6 +511,21 @@ func NormalizeConfiguredDoltEnv(base []string, townRoot string) []string {
 	return base
 }
 
+// ApplyConfiguredDoltEnv applies NormalizeConfiguredDoltEnv to the current
+// process environment for target-town startup boundaries.
+func ApplyConfiguredDoltEnv(townRoot string) {
+	normalized := NormalizeConfiguredDoltEnv(os.Environ(), townRoot)
+	for _, key := range []string{"GT_DOLT_HOST", "GT_DOLT_PORT", "BEADS_DOLT_SERVER_HOST", "BEADS_DOLT_SERVER_PORT", "BEADS_DOLT_PORT"} {
+		_ = os.Unsetenv(key)
+	}
+	for _, entry := range normalized {
+		key, value, ok := strings.Cut(entry, "=")
+		if ok && isDoltEndpointEnvKey(key) {
+			os.Setenv(key, value)
+		}
+	}
+}
+
 func stripDoltEndpointEnv(env []string) []string {
 	filtered := make([]string, 0, len(env))
 	for _, entry := range env {
