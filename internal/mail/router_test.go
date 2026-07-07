@@ -1968,6 +1968,113 @@ func TestEnqueueReplyReminder_Basic(t *testing.T) {
 	}
 }
 
+func TestEnqueueReplyReminder_SkipsUnreplyableSender(t *testing.T) {
+	for _, from := range []string{"gt-sling", "sling", "gt-done", "system", "daemon", "unknown"} {
+		t.Run(from, func(t *testing.T) {
+			townRoot := t.TempDir()
+			r := &Router{workDir: t.TempDir(), townRoot: townRoot}
+			msg := &Message{
+				From:    from,
+				To:      "gastown/witness",
+				Subject: "LIFECYCLE:Shutdown guzzle",
+				Type:    TypeTask,
+			}
+			sessionID := session.WitnessSessionName(session.PrefixFor("gastown"))
+
+			r.enqueueReplyReminder(msg, sessionID)
+
+			pending, err := nudge.Pending(townRoot, sessionID)
+			if err != nil {
+				t.Fatalf("Pending: %v", err)
+			}
+			if pending != 0 {
+				t.Fatalf("expected no queued reminders for %q, got %d", from, pending)
+			}
+		})
+	}
+}
+
+func TestEnqueueReplyReminder_RoutableSenderStillQueues(t *testing.T) {
+	for _, from := range []string{"overseer", "mayor/", "deacon/", "gastown/witness", "gastown/refinery", "gastown/crew/alice", "gastown/polecat/rust", "gastown/polecats/rust", "gastown/rust", "deacon/dogs/alpha"} {
+		t.Run(from, func(t *testing.T) {
+			townRoot := t.TempDir()
+			r := &Router{workDir: t.TempDir(), townRoot: townRoot}
+			msg := &Message{
+				From:    from,
+				To:      "gastown/crew/bob",
+				Subject: "status check",
+				Type:    TypeNotification,
+			}
+			sessionID := session.CrewSessionName(session.PrefixFor("gastown"), "bob")
+
+			r.enqueueReplyReminder(msg, sessionID)
+
+			pending, err := nudge.Pending(townRoot, sessionID)
+			if err != nil {
+				t.Fatalf("Pending: %v", err)
+			}
+			if pending != 1 {
+				t.Fatalf("expected one queued reminder for %q, got %d", from, pending)
+			}
+		})
+	}
+}
+
+func TestSenderCanReceiveReply(t *testing.T) {
+	tests := []struct {
+		from string
+		want bool
+	}{
+		{from: "", want: false},
+		{from: " mayor/", want: false},
+		{from: "gt-sling", want: false},
+		{from: "sling", want: false},
+		{from: "sling/", want: false},
+		{from: "gt-done", want: false},
+		{from: "system", want: false},
+		{from: "daemon", want: false},
+		{from: "unknown", want: false},
+		{from: "human", want: false},
+		{from: "alice@example.com", want: false},
+		{from: "@crew", want: false},
+		{from: "queue:reviews", want: false},
+		{from: "mayorx", want: false},
+		{from: "deaconess", want: false},
+		{from: "mayor/extra", want: false},
+		{from: "deacon/extra", want: false},
+		{from: "gastown/crew/", want: false},
+		{from: "gastown/polecat/", want: false},
+		{from: "gastown/polecats/", want: false},
+		{from: "gastown/crew/alice/extra", want: false},
+		{from: "deacon/dogs/", want: false},
+		{from: "deacon/dogs/alpha/extra", want: false},
+		{from: "overseer", want: true},
+		{from: "mayor", want: true},
+		{from: "mayor/", want: true},
+		{from: "deacon", want: true},
+		{from: "deacon/", want: true},
+		{from: "gastown/mayor", want: true},
+		{from: "gastown/deacon", want: true},
+		{from: "gastown/witness", want: true},
+		{from: "gastown/refinery", want: true},
+		{from: "gastown/crew/alice", want: true},
+		{from: "gastown/polecat/rust", want: true},
+		{from: "gastown/polecats/rust", want: true},
+		{from: "gastown/rust", want: true},
+		{from: "gastown/crew/gt-sling", want: true},
+		{from: "gastown/system-bot", want: true},
+		{from: "deacon/dogs/alpha", want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.from, func(t *testing.T) {
+			if got := senderCanReceiveReply(tt.from); got != tt.want {
+				t.Fatalf("senderCanReceiveReply(%q) = %v, want %v", tt.from, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestClearReplyReminders(t *testing.T) {
 	townRoot := t.TempDir()
 	r := &Router{workDir: t.TempDir(), townRoot: townRoot}

@@ -1789,6 +1789,7 @@ func prioritySeverityLabel(priority Priority) string {
 // Skipped when:
 //   - No town root (can't use nudge queue)
 //   - Message type is TypeReply (recipient is already replying)
+//   - Sender is not a direct mail address that can receive a reply
 //   - Configured delay is zero or negative (feature disabled)
 func (r *Router) enqueueReplyReminder(msg *Message, sessionID string) {
 	if r.townRoot == "" {
@@ -1796,6 +1797,9 @@ func (r *Router) enqueueReplyReminder(msg *Message, sessionID string) {
 	}
 	if msg.Type == TypeReply {
 		return // Already a reply — reminder would be redundant
+	}
+	if !senderCanReceiveReply(msg.From) {
+		return
 	}
 	delay := config.LoadOperationalConfig(r.townRoot).GetMailConfig().ReplyReminderDelayD()
 	if delay <= 0 {
@@ -1812,6 +1816,46 @@ func (r *Router) enqueueReplyReminder(msg *Message, sessionID string) {
 	if err := nudge.Enqueue(r.townRoot, sessionID, reminder); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to enqueue reply reminder for %s: %v\n", sessionID, err)
 	}
+}
+
+func senderCanReceiveReply(from string) bool {
+	if from == "" || strings.TrimSpace(from) != from || strings.ContainsAny(from, " \t\r\n") {
+		return false
+	}
+
+	identity := AddressToIdentity(from)
+	switch identity {
+	case "overseer", "mayor/", "deacon/":
+		return true
+	}
+	if identity == "" || strings.HasPrefix(identity, "@") || strings.ContainsAny(identity, ":@") {
+		return false
+	}
+
+	parts := strings.Split(identity, "/")
+	switch len(parts) {
+	case 2:
+		if !validReplyAddressPart(parts[0]) || !validReplyAddressPart(parts[1]) {
+			return false
+		}
+		if parts[0] == constants.RoleMayor || parts[0] == constants.RoleDeacon {
+			return false
+		}
+		switch parts[1] {
+		case constants.RoleCrew, "polecat", "polecats", "dogs":
+			return false
+		default:
+			return true
+		}
+	case 3:
+		return parts[0] == constants.RoleDeacon && parts[1] == "dogs" && validReplyAddressPart(parts[2])
+	default:
+		return false
+	}
+}
+
+func validReplyAddressPart(part string) bool {
+	return part != "" && strings.TrimSpace(part) == part && !strings.ContainsAny(part, " \t\r\n:@")
 }
 
 // ClearReplyReminders removes any queued reply-reminder nudges for the given
